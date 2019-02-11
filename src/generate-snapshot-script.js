@@ -14,6 +14,10 @@ module.exports = async function (cache, options) {
   const requiredModulePaths = [options.mainPath, ...(options.entryPoints || [])]
   const includedFilePaths = new Set(requiredModulePaths)
 
+  if (!options.transpile) {
+    options.transpile = () => undefined
+  }
+
   while (requiredModulePaths.length > 0) {
     const filePath = requiredModulePaths.shift()
     let relativeFilePath = path.relative(options.baseDirPath, filePath).replace(/\\/g, '/')
@@ -26,7 +30,19 @@ module.exports = async function (cache, options) {
     }
 
     if (!moduleASTs[relativeFilePath]) {
-      const source = fs.readFileSync(filePath, 'utf8')
+      let source = await options.transpile({requiredModulePath: filePath})
+      if (source === undefined) {
+        source = await new Promise((resolve, reject) => {
+          fs.readFile(filePath, {encoding: 'utf8'}, (err, data) => {
+            if (err) {
+              reject(err)
+            } else {
+              resolve(data)
+            }
+          })
+        })
+      }
+
       let foundRequires = []
       const transform = new FileRequireTransform({
         filePath,
