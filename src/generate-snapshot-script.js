@@ -47,6 +47,7 @@ module.exports = async function (cache, options) {
       const transform = new FileRequireTransform({
         filePath,
         source,
+        extensions: options.extensions,
         baseDirPath: options.baseDirPath,
         didFindRequire: (unresolvedPath, resolvedPath, relativeModulePath) => {
           if (options.shouldExcludeModule({ requiringModulePath: filePath, requiredModulePath: resolvedPath, relativeModulePath })) {
