@@ -42,15 +42,21 @@ module.exports = class FileRequireTransform {
         if (isStaticRequire(astPath)) {
           const moduleName = astPath.node.arguments[0].value
           const absoluteModulePath = self.resolveModulePath(moduleName)
+          let relativeModulePath
           if (absoluteModulePath) {
-            let relativeModulePath = path.relative(self.options.baseDirPath, absoluteModulePath).replace(/\\/g, '/')
+            relativeModulePath = path.relative(self.options.baseDirPath, absoluteModulePath).replace(/\\/g, '/')
             if (!relativeModulePath.startsWith('.')) {
               relativeModulePath = './' + relativeModulePath
             }
+
+            if (relativeModulePath.startsWith('./node_modules/')) {
+              relativeModulePath = relativeModulePath.replace(/^\.\/node_modules\//, '')
+            }
+
             astPath.get('arguments', 0).replace(b.literal(relativeModulePath))
           }
 
-          const deferRequire = NODE_CORE_MODULES.has(moduleName) || self.options.didFindRequire(moduleName, absoluteModulePath || moduleName)
+          const deferRequire = NODE_CORE_MODULES.has(moduleName) || self.options.didFindRequire(moduleName, absoluteModulePath || moduleName, relativeModulePath)
           if (deferRequire && isTopLevelASTPath(astPath)) {
             self.replaceAssignmentOrDeclarationWithLazyFunction(astPath)
           }
@@ -62,6 +68,11 @@ module.exports = class FileRequireTransform {
             if (!relativeModulePath.startsWith('.')) {
               relativeModulePath = './' + relativeModulePath
             }
+
+            if (relativeModulePath.startsWith('./node_modules/')) {
+              relativeModulePath = relativeModulePath.replace(/^\.\/node_modules\//, '')
+            }
+
             astPath.get('arguments', 0).replace(b.literal(relativeModulePath))
           }
         }
@@ -302,7 +313,7 @@ function isReference (astPath) {
     return false
   }
 
-  const parent = astPath.parent.value;
+  const parent = astPath.parent.value
   if (t.isVariableDeclarator(parent)) {
     return parent.init === node
   } else if (t.isMemberExpression(parent)) {

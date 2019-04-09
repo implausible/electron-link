@@ -21,6 +21,11 @@ module.exports = async function (cache, options) {
     if (!relativeFilePath.startsWith('.')) {
       relativeFilePath = './' + relativeFilePath
     }
+
+    if (relativeFilePath.startsWith('./node_modules/')) {
+      relativeFilePath = relativeFilePath.replace(/^\.\/node_modules\//, '')
+    }
+
     if (!moduleASTs[relativeFilePath]) {
       const source = fs.readFileSync(filePath, 'utf8')
       let foundRequires = []
@@ -28,8 +33,8 @@ module.exports = async function (cache, options) {
         filePath,
         source,
         baseDirPath: options.baseDirPath,
-        didFindRequire: (unresolvedPath, resolvedPath) => {
-          if (options.shouldExcludeModule({requiringModulePath: filePath, requiredModulePath: resolvedPath})) {
+        didFindRequire: (unresolvedPath, resolvedPath, relativeModulePath) => {
+          if (options.shouldExcludeModule({ requiringModulePath: filePath, requiredModulePath: resolvedPath, relativeModulePath })) {
             return true
           } else {
             foundRequires.push({unresolvedPath, resolvedPath})

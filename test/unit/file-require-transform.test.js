@@ -381,7 +381,7 @@ suite('FileRequireTransform', () => {
         let a;
 
         function get_a() {
-          return a = a || require("./node_modules/a/index.js");
+          return a = a || require("a/index.js");
         }
 
         let b;
@@ -404,7 +404,7 @@ suite('FileRequireTransform', () => {
 
         function inner () {
           require("./dir/subdir/b.js")
-          require.resolve("./node_modules/a/index.js")
+          require.resolve("a/index.js")
           require.resolve('d')
           require('d')
         }
