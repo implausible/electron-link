@@ -1,9 +1,9 @@
 const assert = require('assert')
 const path = require('path')
 const recast = require('recast')
-const astUtil = require('ast-util')
 const b = recast.types.builders
 const resolve = require('resolve')
+const t = require('babel-types')
 
 const GLOBALS = new Set(['global', 'window', 'process', 'document', 'console'])
 const NODE_CORE_MODULES = new Set([
@@ -25,7 +25,9 @@ module.exports = class FileRequireTransform {
       // supported inside javascript strings) with escape unicode sequences.
       source = "module.exports = " + source.replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
     }
-    this.ast = recast.parse(source)
+    this.ast = recast.parse(source, {
+      parser: require("recast/parsers/babel")
+    })
     this.lazyRequireFunctionsByVariableName = new Map()
     this.replaceDeferredRequiresWithLazyFunctions()
     this.replaceReferencesToDeferredRequiresWithFunctionCalls()
@@ -100,7 +102,7 @@ module.exports = class FileRequireTransform {
   replaceReferencesToGlobalsWithFunctionCalls () {
     recast.types.visit(this.ast, {
       visitIdentifier: function (astPath) {
-        if (astUtil.isReference(astPath) && !isReferenceToShadowedVariable(astPath) && GLOBALS.has(astPath.node.name)) {
+        if (isReference(astPath) && !isReferenceToShadowedVariable(astPath) && GLOBALS.has(astPath.node.name)) {
           astPath.replace(b.callExpression(b.identifier(`get_${astPath.node.name}`), []))
         }
         this.traverse(astPath)
@@ -217,9 +219,9 @@ module.exports = class FileRequireTransform {
       lazyRequireFunctionName != null &&
       (scope.node.type !== 'FunctionDeclaration' || lazyRequireFunctionName !== astPath.scope.node.id.name) &&
       (scope.node.type !== 'FunctionExpression' || scope.path.parent.node.type !== 'AssignmentExpression' || lazyRequireFunctionName !== scope.path.parent.node.left.name) &&
-      (astPath.parent.node.type !== 'Property' || astPath.parent.parent.node.type !== 'ObjectPattern') &&
+      (astPath.parent.node.type !== 'ObjectProperty' || astPath.parent.parent.node.type !== 'ObjectPattern') &&
       astPath.parent.node.type !== 'AssignmentExpression' &&
-      astUtil.isReference(astPath)
+      isReference(astPath)
     )
   }
 
@@ -256,7 +258,7 @@ function isStaticRequire (astPath) {
   return (
     node.callee.name === 'require' &&
     node.arguments.length === 1 &&
-    node.arguments[0].type === 'Literal'
+    node.arguments[0].type === 'StringLiteral'
   )
 }
 
@@ -267,7 +269,7 @@ function isStaticRequireResolve (astPath) {
     node.callee.object.name === 'require' &&
     node.callee.property.name === 'resolve' &&
     node.arguments.length === 1 &&
-    node.arguments[0].type === 'Literal'
+    node.arguments[0].type === 'StringLiteral'
   )
 }
 
@@ -292,4 +294,38 @@ function isTopLevelASTPath (astPath) {
   } else {
     return false
   }
+}
+
+function isReference (astPath) {
+  const node = astPath.value
+  if (!t.isIdentifier(node)) {
+    return false
+  }
+
+  const parent = astPath.parent.value;
+  if (t.isVariableDeclarator(parent)) {
+    return parent.init === node
+  } else if (t.isMemberExpression(parent)) {
+    return parent.object === node || (parent.computed && parent.property === node)
+  } else if (t.isFunction(parent)) {
+    return parent.id !== node && !parent.params.some(param => param === node)
+  } else if (t.isClassDeclaration(parent) || t.isClassExpression(parent)) {
+    return parent.id !== node
+  } else if (t.isCatchClause(parent)) {
+    return parent.param !== node
+  } else if (t.isProperty(parent)) {
+    return parent.key !== node
+  } else if (t.isMethod(parent)) {
+    return parent.key !== node
+  } else if (t.isImportSpecifier(parent)) {
+    return false
+  } else if (t.isImportDefaultSpecifier(parent)) {
+    return false
+  } else if (t.isImportNamespaceSpecifier(parent)) {
+    return false
+  } else if (t.isLabeledStatement(parent)) {
+    return false
+  }
+
+  return true
 }

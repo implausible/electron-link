@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@babel/parser@^7.4.3":
+  version "7.4.3"
+  resolved "https://registry.npmjs.org/@babel/parser/-/parser-7.4.3.tgz#eb3ac80f64aa101c907d4ce5406360fe75b7895b"
+  integrity sha512-gxpEUhTS1sGA63EGQGuA+WESPR/6tz6ng7tSHFCmaTJK/cGK8y37cBTspX+U2xCAue2IQVvF6Z0oigmjwD8YGQ==
+
 "@types/node@^7.0.18":
   version "7.10.5"
   resolved "https://registry.npmjs.org/@types/node/-/node-7.10.5.tgz#6831006b2c87441d69e79b37ae9bc03246dfb379"
@@ -123,19 +128,6 @@ ast-types@0.12.3:
   version "0.12.3"
   resolved "https://registry.npmjs.org/ast-types/-/ast-types-0.12.3.tgz#2299c6201d34b2a749a2dd9f2de7ef5f0e84f423"
   integrity sha512-wJUcAfrdW+IgDoMGNz5MmcvahKgB7BwIbLupdKVVHxHNYt+HVR2k35swdYNv9aZpF8nvlkjbnkp2rrNwxGckZA==
-
-ast-types@~0.6.7:
-  version "0.6.16"
-  resolved "https://registry.npmjs.org/ast-types/-/ast-types-0.6.16.tgz#04205b72eddd195a8feaa081f11d0294a24ded93"
-  integrity sha1-BCBbcu3dGVqP6qCB8R0ClKJN7ZM=
-
-ast-util@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.npmjs.org/ast-util/-/ast-util-0.6.0.tgz#0d913d04f0e9831e53f9991dc99009e2da774810"
-  integrity sha1-DZE9BPDpgx5T+ZkdyZAJ4tp3SBA=
-  dependencies:
-    ast-types "~0.6.7"
-    private "~0.1.6"
 
 async-each@^1.0.0:
   version "1.0.2"
@@ -2233,7 +2225,7 @@ pretty-bytes@^1.0.2:
     get-stdin "^4.0.1"
     meow "^3.1.0"
 
-private@^0.1.8, private@~0.1.6:
+private@^0.1.8:
   version "0.1.8"
   resolved "https://registry.npmjs.org/private/-/private-0.1.8.tgz#2381edb3689f7a53d653190060fcf822d2f368ff"
   integrity sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==

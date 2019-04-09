@@ -22,7 +22,8 @@
     "temp": "^0.8.3"
   },
   "dependencies": {
-    "ast-util": "^0.6.0",
+    "@babel/parser": "^7.4.3",
+    "babel-types": "^6.26.0",
     "encoding-down": "~5.0.0",
     "indent-string": "^3.2.0",
     "leveldown": "~4.0.0",
