@@ -344,6 +344,38 @@ suite('FileRequireTransform', () => {
     )
   })
 
+  test('require with destructuring rename', () => {
+    const source = dedent`
+      const {a: A, b, c} = require('module')
+
+      function main() {
+        A.bar()
+      }
+    `
+    assert.equal(
+      new FileRequireTransform({source, didFindRequire: () => true}).apply(),
+      dedent`
+        let {a: A, b, c} = {};
+
+        function get_A() {
+          return A = A || require('module').a;
+        }
+
+        function get_b() {
+          return b = b || require('module').b;
+        }
+
+        function get_c() {
+          return c = c || require('module').c;
+        }
+
+        function main() {
+          get_A().bar()
+        }
+      `
+    )
+  })
+
   test('JSON source', () => {
     const filePath = 'something.json'
     const source = '{"a": 1, "b": 2}'

@@ -193,13 +193,13 @@ module.exports = class FileRequireTransform {
         if (parentNode.id.type === 'ObjectPattern') {
           parentPath.replace(b.variableDeclarator(parentNode.id, b.objectExpression([])))
           for (const property of parentNode.id.properties.slice().reverse()) {
-            const lazyRequireFunctionName = `get_${property.key.name}`
+            const lazyRequireFunctionName = `get_${property.value.name}`
             variableDeclarationPath.insertAfter(b.functionDeclaration(b.identifier(lazyRequireFunctionName), [], b.blockStatement([
               b.returnStatement(
-                b.assignmentExpression('=', property.key, b.logicalExpression('||', property.key, b.memberExpression(parentNode.init, property.key)))
+                b.assignmentExpression('=', property.value, b.logicalExpression('||', property.value, b.memberExpression(parentNode.init, property.key)))
               )
             ])))
-            this.lazyRequireFunctionsByVariableName.set(property.key.name, lazyRequireFunctionName)
+            this.lazyRequireFunctionsByVariableName.set(property.value.name, lazyRequireFunctionName)
           }
         } else {
           parentPath.replace(b.variableDeclarator(parentNode.id, null))
