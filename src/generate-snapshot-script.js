@@ -3,7 +3,6 @@
 const fs = require('fs')
 const path = require('path')
 const FileRequireTransform = require('./file-require-transform')
-const indentString = require('indent-string')
 const {SourceMapGenerator} = require('source-map')
 
 module.exports = async function (cache, options) {
@@ -55,7 +54,7 @@ module.exports = async function (cache, options) {
         foundRequires = cachedTransform.requires
       } else {
         try {
-          transformedSource = indentString(transform.apply(), 2)
+          transformedSource = transform.apply()
         } catch (e) {
           console.error(`Unable to transform source code for module ${filePath}.`)
           if (e.index) {
@@ -123,7 +122,7 @@ module.exports = async function (cache, options) {
     const source = moduleASTs[relativePath]
     const lineCount = getLineCount(source)
     sections.push({relativePath, startRow: sectionStartRow, endRow: (sectionStartRow + lineCount) - 2})
-    definitions += indentString(`${JSON.stringify(relativePath)}: ${source}`, 4) + ',\n'
+    definitions += `${JSON.stringify(relativePath)}: ${source},\n`
     sectionStartRow += lineCount
   }
 
