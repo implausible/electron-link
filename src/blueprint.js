@@ -255,7 +255,8 @@ function generateSnapshot () {
     let module = customRequire.cache[modulePath]
     if (!module) {
       module = {exports: {}}
-      const dirname = modulePath.split('/').slice(0, -1).join('/')
+      const isNodeModule = !modulePath.startsWith('.')
+      const dirname = `${isNodeModule ? 'node_modules/' : ''}${modulePath.split('/').slice(0, -1).join('/')}`
 
       function define (callback) {
         callback(customRequire, module.exports, module)
