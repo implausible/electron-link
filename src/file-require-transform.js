@@ -2,8 +2,8 @@ const assert = require('assert')
 const path = require('path')
 const recast = require('recast')
 const b = recast.types.builders
-const resolve = require('resolve')
 const t = require('babel-types')
+const resolveModulePath = require('./resolve-module-path');
 
 const GLOBALS = new Set(['global', 'window', 'process', 'document', 'console'])
 const NODE_CORE_MODULES = new Set([
@@ -41,7 +41,7 @@ module.exports = class FileRequireTransform {
       visitCallExpression: function (astPath) {
         if (isStaticRequire(astPath)) {
           const moduleName = astPath.node.arguments[0].value
-          const absoluteModulePath = self.resolveModulePath(moduleName)
+          const absoluteModulePath = resolveModulePath({ filePath: self.options.filePath, extensions: self.options.extensions, moduleName });
           let relativeModulePath
           if (absoluteModulePath) {
             relativeModulePath = path.relative(self.options.baseDirPath, absoluteModulePath).replace(/\\/g, '/')
@@ -62,7 +62,7 @@ module.exports = class FileRequireTransform {
           }
         } else if (isStaticRequireResolve(astPath)) {
           const moduleName = astPath.node.arguments[0].value
-          const absoluteModulePath = self.resolveModulePath(moduleName)
+          const absoluteModulePath = resolveModulePath({ filePath: self.options.filePath, extensions: self.options.extensions, moduleName });
           if (absoluteModulePath) {
             let relativeModulePath = path.relative(self.options.baseDirPath, absoluteModulePath).replace(/\\/g, '/')
             if (!relativeModulePath.startsWith('.')) {
@@ -234,19 +234,6 @@ module.exports = class FileRequireTransform {
       astPath.parent.node.type !== 'AssignmentExpression' &&
       isReference(astPath)
     )
-  }
-
-  resolveModulePath (moduleName) {
-    try {
-      const absolutePath = resolve.sync(moduleName, {
-        basedir: path.dirname(this.options.filePath),
-        extensions: this.options.extensions || ['.js', '.json']
-      })
-      const isCoreNodeModule = absolutePath.indexOf(path.sep) === -1
-      return isCoreNodeModule ? null : absolutePath
-    } catch (e) {
-      return null
-    }
   }
 }
 

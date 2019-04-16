@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const FileRequireTransform = require('./file-require-transform')
 const {SourceMapGenerator} = require('source-map')
+const resolveModulePath = require('./resolve-module-path');
 
 module.exports = async function (cache, options) {
   // Phase 1: Starting at the main module, traverse all requires, transforming
@@ -30,17 +31,29 @@ module.exports = async function (cache, options) {
     }
 
     if (!moduleASTs[relativeFilePath]) {
-      let source = await options.transpile({requiredModulePath: filePath})
-      if (source === undefined) {
-        source = await new Promise((resolve, reject) => {
-          fs.readFile(filePath, {encoding: 'utf8'}, (err, data) => {
-            if (err) {
-              reject(err)
-            } else {
-              resolve(data)
-            }
-          })
+      let originalSource = await new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(data)
+          }
         })
+      })
+
+      const cachedTransform = await cache.get({filePath, content: originalSource})
+      const useCachedTransform =
+        cachedTransform
+          ? cachedTransform.requires.every(
+            r => (resolveModulePath({ filePath, extensions: options.extensions, moduleName: r.unresolvedPath }) || r.unresolvedPath) === r.resolvedPath
+          )
+          : false
+
+      let source
+      if(useCachedTransform) {
+        source = cachedTransform.source
+      } else {
+        source = await options.transpile({requiredModulePath: filePath}) || originalSource
       }
 
       let foundRequires = []
@@ -59,12 +72,6 @@ module.exports = async function (cache, options) {
         }
       })
 
-      const cachedTransform = await cache.get({filePath, content: source})
-      const useCachedTransform =
-        cachedTransform ?
-        cachedTransform.requires.every(r => (transform.resolveModulePath(r.unresolvedPath) || r.unresolvedPath) === r.resolvedPath) :
-        false
-
       let transformedSource, requires
       if (useCachedTransform) {
         transformedSource = cachedTransform.source
@@ -81,7 +88,7 @@ module.exports = async function (cache, options) {
           }
           throw e
         }
-        await cache.put({filePath, original: source, transformed: transformedSource, requires: foundRequires})
+        await cache.put({filePath, original: originalSource, transformed: transformedSource, requires: foundRequires})
       }
 
       moduleASTs[relativeFilePath] = `function (exports, module, __filename, __dirname, require, define) {\n${transformedSource}\n}`
