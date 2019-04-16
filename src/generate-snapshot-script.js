@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const FileRequireTransform = require('./file-require-transform')
 const {SourceMapGenerator} = require('source-map')
+const resolveModulePath = require('./resolve-module-path');
 
 module.exports = async function (cache, options) {
   // Phase 1: Starting at the main module, traverse all requires, transforming
@@ -13,6 +14,10 @@ module.exports = async function (cache, options) {
   const moduleASTs = {}
   const requiredModulePaths = [options.mainPath, ...(options.entryPoints || [])]
   const includedFilePaths = new Set(requiredModulePaths)
+
+  if (!options.transpile) {
+    options.transpile = () => undefined
+  }
 
   while (requiredModulePaths.length > 0) {
     const filePath = requiredModulePaths.shift()
@@ -26,11 +31,36 @@ module.exports = async function (cache, options) {
     }
 
     if (!moduleASTs[relativeFilePath]) {
-      const source = fs.readFileSync(filePath, 'utf8')
+      let originalSource = await new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(data)
+          }
+        })
+      })
+
+      const cachedTransform = await cache.get({filePath, content: originalSource})
+      const useCachedTransform =
+        cachedTransform
+          ? cachedTransform.requires.every(
+            r => (resolveModulePath({ filePath, extensions: options.extensions, moduleName: r.unresolvedPath }) || r.unresolvedPath) === r.resolvedPath
+          )
+          : false
+
+      let source
+      if(useCachedTransform) {
+        source = cachedTransform.source
+      } else {
+        source = await options.transpile({requiredModulePath: filePath}) || originalSource
+      }
+
       let foundRequires = []
       const transform = new FileRequireTransform({
         filePath,
         source,
+        extensions: options.extensions,
         baseDirPath: options.baseDirPath,
         didFindRequire: (unresolvedPath, resolvedPath, relativeModulePath) => {
           if (options.shouldExcludeModule({ requiringModulePath: filePath, requiredModulePath: resolvedPath, relativeModulePath })) {
@@ -41,12 +71,6 @@ module.exports = async function (cache, options) {
           }
         }
       })
-
-      const cachedTransform = await cache.get({filePath, content: source})
-      const useCachedTransform =
-        cachedTransform ?
-        cachedTransform.requires.every(r => (transform.resolveModulePath(r.unresolvedPath) || r.unresolvedPath) === r.resolvedPath) :
-        false
 
       let transformedSource, requires
       if (useCachedTransform) {
@@ -64,12 +88,11 @@ module.exports = async function (cache, options) {
           }
           throw e
         }
-        await cache.put({filePath, original: source, transformed: transformedSource, requires: foundRequires})
+        await cache.put({filePath, original: originalSource, transformed: transformedSource, requires: foundRequires})
       }
 
       moduleASTs[relativeFilePath] = `function (exports, module, __filename, __dirname, require, define) {\n${transformedSource}\n}`
 
-      const resolvedRequirePaths = foundRequires.map(r => r.resolvedPath)
       for (let i = 0; i < foundRequires.length; i++) {
         const {resolvedPath} = foundRequires[i]
         requiredModulePaths.push(resolvedPath)
