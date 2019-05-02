@@ -17,7 +17,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply().code,
       dedent`
         let a;
 
@@ -50,7 +50,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a' || mod === 'c'}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a' || mod === 'c'}).apply().code,
       dedent`
         let a, b;
         let get_a;
@@ -89,7 +89,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => ['a', 'c'].indexOf(mod) >= 0}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => ['a', 'c'].indexOf(mod) >= 0}).apply().code,
       dedent`
         let a;
 
@@ -125,16 +125,16 @@ suite('FileRequireTransform', () => {
 
   test('top-level usage of deferred modules', () => {
     assert.throws(() => {
-      new FileRequireTransform({source: `var a = require('a'); a()`, didFindRequire: (mod) => true}).apply()
+      new FileRequireTransform({source: `var a = require('a'); a()`, didFindRequire: (mod) => true}).apply().code
     })
     assert.throws(() => {
-      new FileRequireTransform({source: `require('a')()`, didFindRequire: (mod) => true}).apply()
+      new FileRequireTransform({source: `require('a')()`, didFindRequire: (mod) => true}).apply().code
     })
     assert.throws(() => {
-      new FileRequireTransform({source: `foo = require('a')`, didFindRequire: (mod) => true}).apply()
+      new FileRequireTransform({source: `foo = require('a')`, didFindRequire: (mod) => true}).apply().code
     })
     assert.throws(() => {
-      new FileRequireTransform({source: `module.exports.a = require('a')`, didFindRequire: (mod) => true}).apply()
+      new FileRequireTransform({source: `module.exports.a = require('a')`, didFindRequire: (mod) => true}).apply().code
     })
   })
 
@@ -165,7 +165,7 @@ suite('FileRequireTransform', () => {
       })
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a' || mod === 'c'}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a' || mod === 'c'}).apply().code,
       dedent`
         (function () {
           let a;
@@ -224,7 +224,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply().code,
       dedent`
         let a;
 
@@ -267,7 +267,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply(),
+      new FileRequireTransform({source, didFindRequire: (mod) => mod === 'a'}).apply().code,
       dedent`
         get_global().a = 1
         get_process().b = 2
@@ -292,7 +292,7 @@ suite('FileRequireTransform', () => {
       d = require("d"), e = d.e, f = e.f;
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: () => true}).apply(),
+      new FileRequireTransform({source, didFindRequire: () => true}).apply().code,
       dedent`
         let a, b, c, d, e, f;
         a = 1, b = 2, c = 3;
@@ -321,7 +321,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: () => true}).apply(),
+      new FileRequireTransform({source, didFindRequire: () => true}).apply().code,
       dedent`
         let {a, b, c} = {};
 
@@ -353,7 +353,7 @@ suite('FileRequireTransform', () => {
       }
     `
     assert.equal(
-      new FileRequireTransform({source, didFindRequire: () => true}).apply(),
+      new FileRequireTransform({source, didFindRequire: () => true}).apply().code,
       dedent`
         let {a: A, b, c} = {};
 
@@ -380,7 +380,7 @@ suite('FileRequireTransform', () => {
     const filePath = 'something.json'
     const source = '{"a": 1, "b": 2}'
     assert.equal(
-      new FileRequireTransform({filePath, source, didFindRequire: () => false}).apply(),
+      new FileRequireTransform({filePath, source, didFindRequire: () => false}).apply().code,
       dedent`
         module.exports = {"a": 1, "b": 2}
       `
@@ -408,7 +408,7 @@ suite('FileRequireTransform', () => {
       new FileRequireTransform({baseDirPath, filePath, source, didFindRequire: (unresolvedPath, resolvedPath) => {
         requiredModules.push({unresolvedPath, resolvedPath})
         return true
-      }}).apply(),
+      }}).apply().code,
       dedent`
         let a;
 

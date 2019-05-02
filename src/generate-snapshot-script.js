@@ -49,17 +49,21 @@ module.exports = async function (cache, options) {
           )
           : false
 
-      let source
+      let source, sourceMap
       if(useCachedTransform) {
-        source = cachedTransform.source
+        ({ source, sourceMap } = cachedTransform)
       } else {
-        source = await options.transpile({requiredModulePath: filePath}) || originalSource
+        ({
+          code: source,
+          map: sourceMap
+        } = await options.transpile({requiredModulePath: filePath}) || { code: originalSource })
       }
 
       let foundRequires = []
       const transform = new FileRequireTransform({
         filePath,
         source,
+        sourceMap: sourceMap && JSON.stringify(sourceMap, null, 2),
         extensions: options.extensions,
         baseDirPath: options.baseDirPath,
         didFindRequire: (unresolvedPath, resolvedPath, relativeModulePath) => {
@@ -78,7 +82,7 @@ module.exports = async function (cache, options) {
         foundRequires = cachedTransform.requires
       } else {
         try {
-          transformedSource = transform.apply()
+          ({ code: transformedSource, map: sourceMap } = transform.apply())
         } catch (e) {
           console.error(`Unable to transform source code for module ${filePath}.`)
           if (e.index) {
@@ -88,10 +92,28 @@ module.exports = async function (cache, options) {
           }
           throw e
         }
-        await cache.put({filePath, original: originalSource, transformed: transformedSource, requires: foundRequires})
+        sourceMap = JSON.stringify(sourceMap, null, 2)
+        await cache.put({filePath, original: originalSource, transformed: transformedSource, requires: foundRequires, sourceMap})
       }
 
-      moduleASTs[relativeFilePath] = `function (exports, module, __filename, __dirname, require, define) {\n${transformedSource}\n}`
+      let sourceMappingURL = ''
+      if (options.sourceMapRoot) {
+        const mapName = Buffer.from(path.relative(options.baseDirPath, filePath)).toString("base64")
+        const mapPath = path.join(options.sourceMapRoot, `${mapName.substr(0, mapName.length - 2)}.map`)
+        try {
+          fs.mkdirSync(path.dirname(mapPath), { recursive: true })
+        } catch (e) {
+          if (e.code !== 'EEXIST') {
+            throw e
+          }
+        }
+        try {
+          fs.unlinkSync(mapPath)
+        } catch (e) {}
+        fs.writeFileSync(mapPath, JSON.stringify(sourceMap, null, 2), 'utf8')
+        sourceMappingURL = `//# sourceMappingURL=${mapPath}\n`;
+      }
+      moduleASTs[relativeFilePath] = `function (exports, module, __filename, __dirname, require, define) {\n${transformedSource}\n${sourceMappingURL}}`
 
       for (let i = 0; i < foundRequires.length; i++) {
         const {resolvedPath} = foundRequires[i]

@@ -219,7 +219,7 @@ suite('generateSnapshotScript({baseDirPath, mainPath})', () => {
       shouldExcludeModule: () => false,
       transpile: async ({requiredModulePath}) => {
         if (requiredModulePath.endsWith('b.js')) {
-          return "(function () { this.b = '(transpiled yo)' }).call(this)"
+          return { code: "(function () { this.b = '(transpiled yo)' }).call(this)" }
         } else {
           return undefined
         }
@@ -258,12 +258,12 @@ suite('generateSnapshotScript({baseDirPath, mainPath})', () => {
 
     assert.deepEqual(snapshotResult.translateSnapshotRow(10), {relativePath: '<embedded>', row: 10})
     assert.deepEqual(snapshotResult.translateSnapshotRow(276), {relativePath: '<embedded>', row: 276})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(277), {relativePath: '../fixtures/module-1/index.js', row: 0})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(290), {relativePath: '../fixtures/module-1/index.js', row: 13})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(291), {relativePath: '<embedded>', row: 291})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(298), {relativePath: '../fixtures/module-1/dir/a.js', row: 5})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(309), {relativePath: '../fixtures/module-1/node_modules/a/index.js', row: 0})
-    assert.deepEqual(snapshotResult.translateSnapshotRow(311), {relativePath: '<embedded>', row: 311})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(278), {relativePath: '../fixtures/module-1/index.js', row: 0})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(291), {relativePath: '../fixtures/module-1/index.js', row: 13})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(293), {relativePath: '<embedded>', row: 293})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(299), {relativePath: '../fixtures/module-1/dir/a.js', row: 5})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(310), {relativePath: '../fixtures/module-1/node_modules/a/index.js', row: 0})
+    assert.deepEqual(snapshotResult.translateSnapshotRow(312), {relativePath: '<embedded>', row: 312})
 
     await cache.dispose()
   })
